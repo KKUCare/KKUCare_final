@@ -1,0 +1,282 @@
+/* app/status/status.module.css */
+
+.appContainer {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Inter', 'Sarabun', sans-serif;
+  color: #0f172a;
+}
+
+/* --- Top Navigation Bar --- */
+.topbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-decoration: none;
+}
+
+.brandIcon {
+  background: linear-gradient(135deg, #A32638 0%, #821e2d 100%);
+  color: white;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+
+.navMenu {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  align-items: center;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.navItem:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.active {
+  background: #FFF5F5;
+  color: #A32638;
+}
+
+/* --- Main Content --- */
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.pageHeader {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.pageHeader h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.pageHeader p {
+  color: #64748b;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* --- Card Style --- */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(0,0,0,0.08);
+  border-color: #cbd5e1;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.ticketId {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.cardTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 4px;
+}
+
+.cardMeta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+  gap: 12px;
+}
+
+/* Status Badges */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.status_pending { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.status_pending .dot { background: #d97706; }
+
+.status_in_progress { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.status_in_progress .dot { background: #2563eb; }
+
+.status_resolved { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.status_resolved .dot { background: #059669; }
+
+.status_rejected { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.status_rejected .dot { background: #dc2626; }
+
+/* Buttons */
+.btnAction {
+  background: white;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnAction:hover { background: #f8fafc; color: #0f172a; }
+
+.btnDanger {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnDanger:hover { background: #fef2f2; border-color: #fecaca; }
+
+/* --- Edit Modal --- */
+.modalOverlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modalContent {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modalContent h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroup label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.inputField {
+  width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1;
+  font-size: 0.95rem; font-family: inherit; color: #1e293b; background: #f8fafc;
+  outline: none; transition: all 0.2s; box-sizing: border-box;
+}
+.inputField:focus { border-color: #A32638; background: white; box-shadow: 0 0 0 3px rgba(163,38,56,0.1); }
+
+.modalActions {
+  display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;
+}
+
+.btnPrimary {
+  background: #A32638; color: white; border: none; padding: 10px 20px;
+  border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+}
+.btnPrimary:hover { background: #8e1e2d; }
+
+@media (max-width: 600px) {
+  .topbar { padding: 0 16px; }
+  .navMenu span { display: none; } /* ซ่อนไอคอนบนมือถือเพื่อประหยัดพื้นที่ */
+  .cardFooter { flex-direction: column; align-items: stretch; }
+  .btnAction, .btnDanger { width: 100%; text-align: center; }
+}
