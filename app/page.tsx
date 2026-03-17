@@ -4,17 +4,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import styles from './globals.module.css';
 
 export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName]     = useState('');
+  const [userRole, setUserRole]     = useState<string | null>(null);
+  const [scrolled, setScrolled]     = useState(false);
 
   useEffect(() => {
     const checkUserSession = async () => {
       try {
-        const res = await fetch('/api/auth/me'); 
+        const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data = await res.json();
           if (data.user) {
@@ -23,11 +25,13 @@ export default function HomePage() {
             setUserRole(data.user.role);
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch user session');
-      }
+      } catch { /* silent */ }
     };
     checkUserSession();
+
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const handleLogout = async () => {
@@ -36,58 +40,55 @@ export default function HomePage() {
       setIsLoggedIn(false);
       setUserName('');
       setUserRole(null);
-      router.refresh(); 
-      window.location.reload(); 
-    } catch (error) {
-      console.error('Logout failed');
-    }
+      window.location.reload();
+    } catch { /* silent */ }
   };
 
   const isStaffOrAdmin = userRole === 'admin' || userRole?.startsWith('staff_');
+  const reportHref     = isLoggedIn ? '/report' : '/login';
 
   return (
-    <div className="min-h-screen flex flex-col">
-      
-      {/* --- Topbar (ดีไซน์เดียวกับหน้าแอดมิน) --- */}
-      <nav className="topbar">
-        <div className="nav-container">
-          
-          <Link href="/" className="brand">
-            KKU Care
+    <div className={styles.page}>
+
+      {/* ── TOPBAR ─────────────────────────────────────────── */}
+      <nav className={`${styles.topbar} ${scrolled ? styles.topbarScrolled : ''}`}>
+        <div className={styles.navContainer}>
+
+          <Link href="/" className={styles.brand}>
+            <div className={styles.brandMark}>K</div>
+            <span className={styles.brandText}>
+              KKU<span>Care</span>
+            </span>
           </Link>
 
-          {/* เมนูนำทางตรงกลาง */}
-          <div className="nav-menu">
-            <Link href="/" className="nav-link active">
-              <span>🏠</span> หน้าหลัก
-            </Link>
-            <Link href="/status" className="nav-link">
-              <span>📋</span> ติดตามสถานะ
-            </Link>
+          <div className={styles.navMenu}>
+            <Link href="/"       className={`${styles.navLink} ${styles.navLinkActive}`}>หน้าหลัก</Link>
+            <Link href="/report" className={styles.navLink}>แจ้งปัญหา</Link>
+            <Link href="/status" className={styles.navLink}>ติดตามสถานะ</Link>
             {isStaffOrAdmin && (
-              <Link href="/admin" className="nav-link" style={{color: '#A32638', fontWeight: 600}}>
-                <span>⚙️</span> ระบบจัดการ
+              <Link href="/admin" className={`${styles.navLink} ${styles.navLinkAdmin}`}>
+                ระบบจัดการ
               </Link>
             )}
           </div>
-          
-          {/* ส่วนจัดการผู้ใช้งาน */}
-          <div className="nav-actions">
+
+          <div className={styles.navActions}>
             {isLoggedIn ? (
               <>
-                <span className="user-greeting hide-on-mobile">
+                <span className={`${styles.userChip} ${styles.hideOnMobile}`}>
+                  <span className={styles.userChipDot} />
                   {userName}
                 </span>
-                <button onClick={handleLogout} className="btn-text" style={{color: '#ef4444'}}>
+                <button onClick={handleLogout} className={styles.btnNavGhost}>
                   ออกจากระบบ
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => router.push('/login')} className="btn-text">
+                <button onClick={() => router.push('/login')}    className={styles.btnNavGhost}>
                   เข้าสู่ระบบ
                 </button>
-                <button onClick={() => router.push('/register')} className="btn-pill">
+                <button onClick={() => router.push('/register')} className={styles.btnNavPrimary}>
                   สมัครสมาชิก
                 </button>
               </>
@@ -97,75 +98,121 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* --- Main Content --- */}
-      <main className="flex-grow">
-        
-        {/* Hero Section */}
-        <section className="hero">
-          <div className="container hero-grid">
-            <div className="hero-content">
-              <h1 className="hero-title">
-                รายงานและติดตามปัญหา<br />
-                <span className="highlight">ภายในมหาวิทยาลัยขอนแก่น</span>
-              </h1>
-              <p className="hero-subtitle">
-                พบเห็นปัญหา สาธารณูปโภคชำรุด หรือความไม่ปลอดภัย แจ้งเรื่องได้ทันทีผ่านแพลตฟอร์มของเรา พร้อมติดตามความคืบหน้าแบบเรียลไทม์
-              </p>
-
-              <div className="hero-actions">
-                <Link href={isLoggedIn ? "/report" : "/login"} className="btn-primary">
-                  📢 สร้างรายการแจ้งปัญหา
-                </Link>
-              </div>
-            </div>
-
-            <div className="hero-illustration">
-              <div className="floating-badge">✨ พร้อมให้บริการ 24 ชม.</div>
-              <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>🏫</div>
-              <h3 style={{ margin: 0, color: '#0F172A', fontSize: '1.2rem' }}>Smart Campus</h3>
-              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>Khon Kaen University</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="section-features">
-          <div className="container">
-            <h2 className="section-title">ขั้นตอนการใช้งานง่ายๆ</h2>
-            <div className="features-grid">
-              
-              <div className="feature-card">
-                <div className="feature-icon">📸</div>
-                <h3>1. ถ่ายภาพและระบุจุด</h3>
-                <p>ถ่ายรูปปัญหาที่พบ พร้อมระบุสถานที่ให้ชัดเจนเพื่อให้เจ้าหน้าที่เข้าถึงพื้นที่ได้อย่างแม่นยำ</p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">⚡</div>
-                <h3>2. รับเรื่องและดำเนินการ</h3>
-                <p>ระบบจะส่งข้อมูลแจ้งเตือนไปยังเจ้าหน้าที่ที่รับผิดชอบโดยตรง เพื่อลงพื้นที่เริ่มแก้ไขปัญหา</p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">✅</div>
-                <h3>3. แจ้งผลการแก้ไข</h3>
-                <p>เมื่อดำเนินการเสร็จสิ้น คุณจะได้รับการแจ้งเตือนสถานะผ่านระบบ พร้อมภาพยืนยันหลังการแก้ไข</p>
-              </div>
-
-            </div>
-          </div>
-        </section>
-        
-      </main>
-
-      {/* --- Footer --- */}
-      <footer className="site-footer">
-        <div className="container">
-          <p className="footer-brand">KHON KAEN UNIVERSITY</p>
-          <p className="footer-copy">
-            © {new Date().getFullYear()} KKU Care — แพลตฟอร์มรายงานปัญหาอัจฉริยะสำหรับนักศึกษาและบุคลากร
-          </p>
+      {/* ── HERO ───────────────────────────────────────────── */}
+      <section className={styles.hero}>
+        <div className={styles.heroBg} aria-hidden="true">
+          <div className={styles.heroBgGlow1} />
+          <div className={styles.heroBgGlow2} />
+          <div className={styles.heroDots} />
         </div>
+
+        <div className={styles.heroInner}>
+
+          <div className={styles.heroBadge}>
+            <span className={styles.heroBadgeDot} />
+            พร้อมรับเรื่องตลอด 24 ชั่วโมง
+          </div>
+
+          <h1 className={styles.heroTitle}>
+            แจ้งปัญหา<br />
+            <span className={styles.heroTitleAccent}>ภายในมหาวิทยาลัย</span><br />
+            ได้ทุกที่ทุกเวลา
+          </h1>
+
+          <p className={styles.heroSubtitle}>
+            พบเห็นสาธารณูปโภคชำรุด ความไม่ปลอดภัย หรือปัญหาในพื้นที่ มข.
+            แจ้งเรื่องผ่านแพลตฟอร์มของเรา แล้วติดตามความคืบหน้าแบบเรียลไทม์
+          </p>
+
+          <div className={styles.heroActions}>
+            <Link href={reportHref} className={styles.btnPrimary}>
+              สร้างรายการแจ้งปัญหา →
+            </Link>
+            <Link href="/status" className={styles.btnGhost}>
+              ดูสถานะการแก้ไข
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className={styles.heroStats}>
+            {[
+              { num: '1,240+', label: 'เรื่องที่แก้ไขแล้ว' },
+              { num: '98%',    label: 'อัตราความพึงพอใจ'  },
+              { num: '< 48h', label: 'เฉลี่ยเวลาแก้ไข'   },
+            ].map((s) => (
+              <div key={s.label} className={styles.statItem}>
+                <div className={styles.statNum}>{s.num}</div>
+                <div className={styles.statLabel}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ───────────────────────────────────── */}
+      <section className={styles.sectionHow}>
+        <div className={styles.sectionHowBg} aria-hidden="true" />
+        <div className={styles.sectionInner}>
+          <p className={styles.sectionLabel}>วิธีการใช้งาน</p>
+          <h2 className={styles.sectionTitle}>ง่ายแค่ 3 ขั้นตอน</h2>
+
+          <div className={styles.stepsGrid}>
+            {[
+              {
+                emoji: '📸', num: '1',
+                title: 'ถ่ายภาพและระบุจุด',
+                desc:  'ถ่ายรูปปัญหาที่พบ พร้อมระบุสถานที่ให้ชัดเจน เพื่อให้เจ้าหน้าที่เข้าถึงพื้นที่ได้อย่างแม่นยำ',
+              },
+              {
+                emoji: '⚡', num: '2',
+                title: 'รับเรื่องและดำเนินการ',
+                desc:  'ระบบส่งข้อมูลแจ้งเตือนไปยังเจ้าหน้าที่ที่รับผิดชอบโดยตรง เพื่อลงพื้นที่แก้ไขปัญหาทันที',
+              },
+              {
+                emoji: '✅', num: '3',
+                title: 'แจ้งผลการแก้ไข',
+                desc:  'เมื่อดำเนินการเสร็จ คุณจะได้รับแจ้งเตือนสถานะผ่านระบบ พร้อมภาพยืนยันหลังการแก้ไข',
+              },
+            ].map((s) => (
+              <div key={s.num} className={styles.stepCard}>
+                <div className={styles.stepNum}>
+                  {s.emoji}
+                  <span className={styles.stepNumLabel}>{s.num}</span>
+                </div>
+                <h3 className={styles.stepTitle}>{s.title}</h3>
+                <p className={styles.stepDesc}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA BAND ───────────────────────────────────────── */}
+      <section className={styles.ctaBand}>
+        <div className={styles.ctaBandBg} aria-hidden="true" />
+        <div className={styles.ctaInner}>
+          <h2 className={styles.ctaTitle}>
+            พร้อมแล้ว?<br />
+            มาช่วยกัน<em>พัฒนา มข.</em>
+          </h2>
+          <p className={styles.ctaSub}>
+            ทุกรายงานของคุณมีความหมาย — ร่วมสร้างสภาพแวดล้อมที่ดีขึ้น
+            สำหรับนักศึกษาและบุคลากรทุกคน
+          </p>
+          <Link href={reportHref} className={styles.btnCtaPrimary}>
+            เริ่มแจ้งปัญหาเลย →
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ─────────────────────────────────────────── */}
+      <footer className={styles.footer}>
+        <p className={styles.footerBrand}>KHON KAEN UNIVERSITY</p>
+        <p className={styles.footerCopy}>
+          © {new Date().getFullYear()} KKU Care — แพลตฟอร์มรายงานปัญหาอัจฉริยะ
+          สำหรับนักศึกษาและบุคลากร
+        </p>
       </footer>
 
     </div>

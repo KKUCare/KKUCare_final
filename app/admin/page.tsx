@@ -6,22 +6,51 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './admin.module.css';
 
+// ── Constants ─────────────────────────────────────────────────
+const ROLE_CATEGORY_MAP: Record<string, string> = {
+  staff_general:     'ทั่วไป',
+  staff_electricity: 'ไฟฟ้า/แสงสว่าง',
+  staff_water:       'ประปา',
+  staff_it:          'ไอที/เครือข่าย',
+  staff_security:    'ความปลอดภัย',
+  staff_cleaning:    'ความสะอาด',
+};
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  'ทั่วไป':          '🔧',
+  'ไฟฟ้า/แสงสว่าง': '💡',
+  'ประปา':           '🚿',
+  'ไอที/เครือข่าย':  '📡',
+  'ความปลอดภัย':    '🚧',
+  'ความสะอาด':      '🧹',
+};
+
+const CATEGORIES = ['ทั่วไป', 'ไฟฟ้า/แสงสว่าง', 'ประปา', 'ไอที/เครือข่าย', 'ความสะอาด'];
+
+const STATUS_CONFIG = {
+  pending:     { text: 'รอรับเรื่อง',    badgeCls: styles.badge_pending,     dotCls: styles.dot_pending,     bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  in_progress: { text: 'กำลังดำเนินการ', badgeCls: styles.badge_in_progress, dotCls: styles.dot_in_progress, bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  resolved:    { text: 'เสร็จสิ้น',      badgeCls: styles.badge_resolved,    dotCls: styles.dot_resolved,    bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  rejected:    { text: 'ยกเลิก',          badgeCls: styles.badge_rejected,    dotCls: styles.dot_rejected,    bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+} as const;
+
+// ── Component ─────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const [issues, setIssues] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string>('');
   const router = useRouter();
+  const [issues,   setIssues]   = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [userRole, setUserRole] = useState('');
 
-  // State สำหรับ กรองข้อมูล
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [filterStatus, setFilterStatus] = useState('All');
+  const [searchTerm,      setSearchTerm]      = useState('');
+  const [filterStatus,    setFilterStatus]    = useState('All');
+  const [filterCategory,  setFilterCategory]  = useState('All');
 
-  // State สำหรับ Drawer (Slide-over)
-  const [drawerIssue, setDrawerIssue] = useState<any | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({ title: '', location: '', description: '', category: '', status: '' });
+  const [drawerIssue,  setDrawerIssue]  = useState<any | null>(null);
+  const [isEditMode,   setIsEditMode]   = useState(false);
+  const [editForm,     setEditForm]     = useState({ title: '', location: '', description: '', category: '', status: '' });
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
 
+  // ── Fetch ──────────────────────────────────────────────────
   const fetchAllIssues = async () => {
     try {
       const authRes = await fetch('/api/auth/me');
@@ -29,7 +58,6 @@ export default function AdminDashboard() {
         const authData = await authRes.json();
         setUserRole(authData.user?.role || '');
       }
-
       const res = await fetch('/api/issues?mode=admin');
       if (res.ok) {
         const data = await res.json();
@@ -46,262 +74,335 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchAllIssues(); }, []);
 
-  // เปิด Drawer
+  // ── Drawer ─────────────────────────────────────────────────
   const openDrawer = (issue: any) => {
     setDrawerIssue(issue);
     setIsEditMode(false);
     setEditForm({
-      title: issue.title,
-      location: issue.location,
-      description: issue.description,
-      category: issue.category,
-      status: issue.status
+      title:       issue.title,
+      location:    issue.location,
+      description: issue.description || '',
+      category:    issue.category,
+      status:      issue.status,
     });
   };
 
-  const closeDrawer = () => {
-    setDrawerIssue(null);
-    setIsEditMode(false);
+  const closeDrawer = () => { setDrawerIssue(null); setIsEditMode(false); };
+
+  // ── Quick status ───────────────────────────────────────────
+  const handleQuickStatus = async (newStatus: string) => {
+    if (!drawerIssue || newStatus === drawerIssue.status) return;
+    setSavingStatus(newStatus);
+    try {
+      const res = await fetch(`/api/issues/${drawerIssue.ticketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, status: newStatus }),
+      });
+      if (res.ok) {
+        const updated = { ...drawerIssue, status: newStatus };
+        setDrawerIssue(updated);
+        setEditForm(f => ({ ...f, status: newStatus }));
+        setIssues(prev => prev.map(i => i.ticketId === drawerIssue.ticketId ? updated : i));
+      }
+    } finally {
+      setSavingStatus(null);
+    }
   };
 
+  // ── Full edit save ─────────────────────────────────────────
   const handleUpdate = async () => {
     if (!drawerIssue) return;
     try {
       const res = await fetch(`/api/issues/${drawerIssue.ticketId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(editForm),
       });
       if (res.ok) {
-        fetchAllIssues();
+        const updated = { ...drawerIssue, ...editForm };
+        setDrawerIssue(updated);
+        setIssues(prev => prev.map(i => i.ticketId === drawerIssue.ticketId ? updated : i));
         setIsEditMode(false);
-        setDrawerIssue({ ...drawerIssue, ...editForm });
       } else {
         alert('แก้ไขไม่สำเร็จ');
       }
-    } catch (error) { alert('Error updating'); }
+    } catch { alert('เกิดข้อผิดพลาด'); }
   };
 
+  // ── Delete ─────────────────────────────────────────────────
   const handleDelete = async (ticketId: string) => {
-    if (!confirm('⚠️ ลบใบงานนี้ถาวร ใช่หรือไม่?')) return;
+    if (!confirm('ลบใบงานนี้ถาวร ใช่หรือไม่?')) return;
     try {
       const res = await fetch(`/api/issues/${ticketId}`, { method: 'DELETE' });
       if (res.ok) {
-        setIssues(prev => prev.filter(item => item.ticketId !== ticketId));
+        setIssues(prev => prev.filter(i => i.ticketId !== ticketId));
         closeDrawer();
       }
-    } catch (error) { alert('Error deleting'); }
+    } catch { alert('เกิดข้อผิดพลาด'); }
   };
+
+  // ── Helpers ────────────────────────────────────────────────
+  const canEdit = (issue: any) =>
+    userRole === 'admin' || ROLE_CATEGORY_MAP[userRole] === issue?.category;
+
+  const getStatusCfg = (s: string) =>
+    STATUS_CONFIG[s as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
 
   const filteredIssues = issues.filter(issue => {
-    const matchesSearch = 
-      issue.ticketId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (issue.reporter?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'All' || issue.category === filterCategory;
-    const matchesStatus = filterStatus === 'All' || issue.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const q = searchTerm.toLowerCase();
+    const matchSearch =
+      (issue.ticketId       || '').toLowerCase().includes(q) ||
+      (issue.title          || '').toLowerCase().includes(q) ||
+      (issue.location       || '').toLowerCase().includes(q) ||
+      (issue.reporter?.name || '').toLowerCase().includes(q);
+    const matchStatus   = filterStatus   === 'All' || issue.status   === filterStatus;
+    const matchCategory = filterCategory === 'All' || issue.category === filterCategory;
+    const matchRole     = userRole === 'admin' || ROLE_CATEGORY_MAP[userRole] === issue.category;
+    return matchSearch && matchStatus && matchCategory && matchRole;
   });
 
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'pending': return 'รอรับเรื่อง';
-      case 'in_progress': return 'กำลังดำเนินการ';
-      case 'resolved': return 'เสร็จสิ้น';
-      case 'rejected': return 'ยกเลิก';
-      default: return status;
-    }
-  };
-
+  // ── Render ─────────────────────────────────────────────────
   return (
     <div className={styles.appContainer}>
-      
-      {/* --- Top Navigation Bar --- */}
+
+      {/* ── TOPBAR — unified pattern ────────────────────────── */}
       <nav className={styles.topbar}>
-        <div className={styles.brand}>
-          KKU Care
-        </div>
-        <div className={styles.navMenu}>
-          <Link href="/admin" className={`${styles.navItem} ${styles.active}`}>
-            <span className={styles.navIcon}>📋</span> จัดการปัญหา
+        <div className={styles.navContainer}>
+
+          {/* Brand */}
+          <Link href="/" className={styles.brand}>
+            <div className={styles.brandMark}>K</div>
+            <span className={styles.brandText}>KKU<span>Care</span></span>
           </Link>
-          <Link href="/admin/stats" className={styles.navItem}>
-            <span className={styles.navIcon}>📈</span> สถิติภาพรวม
-          </Link>
-          <Link href="/" className={styles.navItem} style={{marginLeft: '16px', borderLeft: '1px solid #e2e8f0', paddingLeft: '24px', borderRadius: 0}}>
-            กลับหน้าหลัก
-          </Link>
+
+          {/* Nav links — centered */}
+          <div className={styles.navMenu}>
+            <Link href="/admin"       className={`${styles.navLink} ${styles.navLinkActive}`}>จัดการปัญหา</Link>
+            <Link href="/admin/stats" className={styles.navLink}>สถิติภาพรวม</Link>
+          </div>
+
+          {/* Right — ปุ่มกลับหน้าหลักอันเดียว */}
+          <div className={styles.navActions}>
+            <Link href="/" className={styles.btnNavGhost}>← กลับหน้าหลัก</Link>
+          </div>
+
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* ── MAIN ─────────────────────────────────────────────── */}
       <div className={styles.content}>
-        
+
+        {/* Header */}
         <div className={styles.pageHeader}>
-          <h1>ระบบจัดการคำร้อง (Admin)</h1>
-          <p>ตรวจสอบ อัปเดตสถานะ และจัดการปัญหาที่ได้รับแจ้งจากผู้ใช้งาน</p>
+          <div>
+            <p className={styles.pageEyebrow}>Admin Panel</p>
+            <h1 className={styles.pageTitle}>จัดการคำร้องแจ้งปัญหา</h1>
+            <p className={styles.pageSubtitle}>ตรวจสอบและอัปเดตสถานะงานที่ได้รับแจ้ง</p>
+          </div>
+          <div className={styles.resultCount}>
+            พบ <span className={styles.resultCountNum}>{filteredIssues.length}</span> รายการ
+          </div>
         </div>
 
-        {/* Toolbar (Search & Filter) */}
+        {/* Toolbar */}
         <div className={styles.toolbar}>
           <div className={styles.searchBox}>
-            <span>🔍</span>
-            <input 
-              type="text" 
-              placeholder="ค้นหา Ticket ID, หัวข้อ หรือชื่อผู้แจ้ง..." 
+            <span className={styles.searchIcon}>🔍</span>
+            <input
+              type="text"
               className={styles.searchInput}
+              placeholder="ค้นหา Ticket, หัวข้อ, สถานที่ หรือชื่อผู้แจ้ง..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-
-          <select className={styles.filterSelect} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <select className={styles.filterSelect} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="All">สถานะทั้งหมด</option>
             <option value="pending">รอรับเรื่อง</option>
             <option value="in_progress">กำลังดำเนินการ</option>
             <option value="resolved">เสร็จสิ้น</option>
             <option value="rejected">ยกเลิก</option>
           </select>
-
-          <select className={styles.filterSelect} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+          <select className={styles.filterSelect} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
             <option value="All">ทุกหมวดหมู่</option>
-            <option value="ทั่วไป">ทั่วไป</option>
-            <option value="ไฟฟ้า/แสงสว่าง">ไฟฟ้า/แสงสว่าง</option>
-            <option value="ประปา">ประปา</option>
-            <option value="ไอที/เครือข่าย">ไอที/เครือข่าย</option>
-            <option value="ความปลอดภัย">ความปลอดภัย</option>
-            <option value="ความสะอาด">ความสะอาด</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          
-          <span style={{fontSize:'0.85rem', color:'#64748b', marginLeft:'auto', fontWeight: 500}}>
-            พบข้อมูล {filteredIssues.length} รายการ
-          </span>
         </div>
 
-        {/* The List */}
+        {/* List */}
         <div className={styles.listContainer}>
           <div className={styles.listHeader}>
             <div>Ticket ID</div>
-            <div>รายละเอียดปัญหา</div>
+            <div>รายละเอียด</div>
             <div className={styles.hideMobile}>หมวดหมู่</div>
             <div>สถานะ</div>
-            <div style={{textAlign:'right'}}>วันที่แจ้ง</div>
+            <div style={{ textAlign: 'right' }}>วันที่</div>
           </div>
 
-          {filteredIssues.length === 0 ? (
-            <div style={{padding:'60px', textAlign:'center', color:'#94a3b8'}}>ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>
-          ) : (
-            filteredIssues.map((issue) => (
+          {loading ? (
+            <div className={styles.loadingDots}><span /><span /><span /></div>
+          ) : filteredIssues.length === 0 ? (
+            <div className={styles.stateRow}>
+              <span className={styles.stateIcon}>🔍</span>
+              <p className={styles.stateText}>ไม่พบรายการที่ตรงกับเงื่อนไข</p>
+            </div>
+          ) : filteredIssues.map(issue => {
+            const sc = getStatusCfg(issue.status);
+            return (
               <div key={issue.ticketId} className={styles.listItem} onClick={() => openDrawer(issue)}>
                 <div className={styles.ticketId}>#{issue.ticketId}</div>
-                <div style={{paddingRight: '20px'}}>
+                <div style={{ paddingRight: 16, overflow: 'hidden' }}>
                   <div className={styles.itemTitle}>{issue.title}</div>
-                  <div className={styles.itemDesc}>{issue.location} • แจ้งโดย {issue.reporter?.name}</div>
-                </div>
-                <div className={styles.hideMobile} style={{fontSize:'0.9rem', color:'#475569'}}>{issue.category}</div>
-                <div>
-                  <div className={styles.statusBadge}>
-                    <span className={`${styles.dot} ${styles['dot_' + issue.status]}`}></span>
-                    {getStatusText(issue.status)}
+                  <div className={styles.itemMeta}>
+                    📍 {issue.location}{issue.reporter?.name && ` · ${issue.reporter.name}`}
                   </div>
                 </div>
-                <div style={{textAlign:'right', fontSize:'0.85rem', color:'#64748b'}}>
-                  {new Date(issue.createdAt).toLocaleDateString('th-TH', { day:'2-digit', month:'short' })}
+                <div className={styles.hideMobile}>
+                  <span className={styles.catBadge}>
+                    {CATEGORY_EMOJI[issue.category] ?? '📌'} {issue.category}
+                  </span>
+                </div>
+                <div>
+                  <span className={`${styles.statusBadge} ${sc.badgeCls}`}>
+                    <span className={`${styles.dot} ${sc.dotCls}`} />
+                    {sc.text}
+                  </span>
+                </div>
+                <div className={styles.itemDate}>
+                  {new Date(issue.createdAt).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })}
                 </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
+
       </div>
 
-      {/* --- Slide Over Drawer (View / Edit) --- */}
+      {/* ── DRAWER ───────────────────────────────────────────── */}
       {drawerIssue && (
         <div className={styles.drawerOverlay} onClick={closeDrawer}>
           <div className={styles.drawer} onClick={e => e.stopPropagation()}>
-            
+
+            {/* Header */}
             <div className={styles.drawerHeader}>
-              <h2>{isEditMode ? 'แก้ไขข้อมูลปัญหา' : 'รายละเอียดใบงาน'}</h2>
-              <button onClick={closeDrawer} style={{background:'none', border:'none', fontSize:'1.2rem', cursor:'pointer', color:'#64748b'}}>✖</button>
+              <div>
+                <p className={styles.drawerEyebrow}>#{drawerIssue.ticketId}</p>
+                <h2 className={styles.drawerTitle}>
+                  {isEditMode ? 'แก้ไขข้อมูล' : 'รายละเอียดใบงาน'}
+                </h2>
+              </div>
+              <button className={styles.drawerCloseBtn} onClick={closeDrawer} aria-label="ปิด">
+                <svg viewBox="0 0 12 12" fill="none" width="11" height="11">
+                  <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
 
+            {/* Body */}
             <div className={styles.drawerBody}>
-              {/* สลับระหว่างโหมดดู และ โหมดแก้ไข */}
               {!isEditMode ? (
                 <>
-                  <div className={styles.detailGroup}>
-                    <span className={styles.detailLabel}>Ticket ID</span>
-                    <span className={styles.ticketId} style={{fontSize:'1.1rem', color:'#0f172a'}}>#{drawerIssue.ticketId}</span>
-                  </div>
-                  <div className={styles.detailGroup}>
-                    <span className={styles.detailLabel}>ผู้แจ้งเรื่อง</span>
-                    <div className={styles.detailValue}>{drawerIssue.reporter?.name} <span style={{color:'#64748b', fontSize:'0.85rem'}}>({drawerIssue.reporter?.email})</span></div>
-                  </div>
-                  <div className={styles.detailGroup}>
-                    <span className={styles.detailLabel}>สถานะปัจจุบัน</span>
-                    <div className={styles.statusBadge} style={{width:'fit-content', background:'transparent', padding:0, fontSize:'1rem'}}>
-                      <span className={`${styles.dot} ${styles['dot_' + drawerIssue.status]}`}></span>
-                      {getStatusText(drawerIssue.status)}
+                  {/* Quick status */}
+                  {canEdit(drawerIssue) && (
+                    <div className={styles.detailGroup}>
+                      <span className={styles.detailLabel}>เปลี่ยนสถานะ</span>
+                      <div className={styles.statusQuickRow}>
+                        {(Object.entries(STATUS_CONFIG) as [string, typeof STATUS_CONFIG[keyof typeof STATUS_CONFIG]][]).map(([key, cfg]) => (
+                          <button
+                            key={key}
+                            className={styles.statusQuickBtn}
+                            onClick={() => handleQuickStatus(key)}
+                            disabled={savingStatus !== null}
+                            style={{
+                              background:  drawerIssue.status === key ? cfg.bg    : 'white',
+                              color:       drawerIssue.status === key ? cfg.color : '#8a7f76',
+                              borderColor: drawerIssue.status === key ? cfg.border : '#e8e0d8',
+                              fontWeight:  drawerIssue.status === key ? 700 : 500,
+                              opacity:     savingStatus && savingStatus !== key ? 0.4 : 1,
+                            }}
+                          >
+                            {savingStatus === key ? '...' : cfg.text}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  <div className={styles.drawerDivider} />
+
                   <div className={styles.detailGroup}>
                     <span className={styles.detailLabel}>หัวข้อปัญหา</span>
-                    <div className={styles.detailValue} style={{fontWeight: 600}}>{drawerIssue.title}</div>
+                    <div className={styles.detailValue} style={{ fontWeight: 600 }}>{drawerIssue.title}</div>
                   </div>
-                  <div className={styles.detailGroup}>
-                    <span className={styles.detailLabel}>รายละเอียดเพิ่มเติม</span>
-                    <div className={styles.detailValue} style={{whiteSpace:'pre-wrap'}}>{drawerIssue.description || '-'}</div>
-                  </div>
+
                   <div className={styles.detailGroup}>
                     <span className={styles.detailLabel}>สถานที่ & หมวดหมู่</span>
-                    <div className={styles.detailValue}>📍 {drawerIssue.location} <br/><br/> 📂 {drawerIssue.category}</div>
+                    <div className={styles.detailValue}>
+                      📍 {drawerIssue.location}<br />
+                      {CATEGORY_EMOJI[drawerIssue.category] ?? '📌'} {drawerIssue.category}
+                    </div>
                   </div>
+
+                  {drawerIssue.description && (
+                    <div className={styles.detailGroup}>
+                      <span className={styles.detailLabel}>รายละเอียด</span>
+                      <div className={styles.detailValue} style={{ whiteSpace: 'pre-wrap' }}>
+                        {drawerIssue.description}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.detailGroup}>
+                    <span className={styles.detailLabel}>ผู้แจ้งเรื่อง</span>
+                    <div className={styles.detailValue}>
+                      {drawerIssue.reporter?.name}
+                      {drawerIssue.reporter?.email && (
+                        <span className={styles.reporterEmail}>{drawerIssue.reporter.email}</span>
+                      )}
+                    </div>
+                  </div>
+
                   {drawerIssue.image && (
                     <div className={styles.detailGroup}>
                       <span className={styles.detailLabel}>ภาพถ่ายแนบ</span>
-                      <img src={drawerIssue.image} alt="Issue" style={{width:'100%', borderRadius:'12px', border:'1px solid #e2e8f0'}} />
+                      <img src={drawerIssue.image} alt="Issue" className={styles.drawerImage} />
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  {/* ฟอร์มแก้ไขข้อมูล */}
                   <div className={styles.detailGroup}>
                     <label className={styles.detailLabel}>สถานะการดำเนินการ</label>
-                    <select className={styles.inputField} value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
-                      <option value="pending">รอรับเรื่อง</option>
-                      <option value="in_progress">กำลังดำเนินการ</option>
-                      <option value="resolved">เสร็จสิ้น</option>
-                      <option value="rejected">ยกเลิก</option>
+                    <select className={styles.inputField} value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
+                      {(Object.entries(STATUS_CONFIG) as [string, typeof STATUS_CONFIG[keyof typeof STATUS_CONFIG]][]).map(([key, cfg]) => (
+                        <option key={key} value={key}>{cfg.text}</option>
+                      ))}
                     </select>
                   </div>
                   <div className={styles.detailGroup}>
                     <label className={styles.detailLabel}>หัวข้อปัญหา</label>
-                    <input type="text" className={styles.inputField} value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+                    <input type="text" className={styles.inputField} value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
                   </div>
                   <div className={styles.detailGroup}>
                     <label className={styles.detailLabel}>หมวดหมู่</label>
-                    <select className={styles.inputField} value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})}>
-                      <option value="ทั่วไป">ทั่วไป</option>
-                      <option value="ไฟฟ้า/แสงสว่าง">ไฟฟ้า/แสงสว่าง</option>
-                      <option value="ประปา">ประปา</option>
-                      <option value="ไอที/เครือข่าย">ไอที/เครือข่าย</option>
-                      <option value="ความปลอดภัย">ความปลอดภัย</option>
-                      <option value="ความสะอาด">ความสะอาด</option>
+                    <select className={styles.inputField} value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className={styles.detailGroup}>
                     <label className={styles.detailLabel}>สถานที่</label>
-                    <input type="text" className={styles.inputField} value={editForm.location} onChange={e => setEditForm({...editForm, location: e.target.value})} />
+                    <input type="text" className={styles.inputField} value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
                   </div>
                   <div className={styles.detailGroup}>
                     <label className={styles.detailLabel}>รายละเอียด</label>
-                    <textarea rows={4} className={styles.inputField} value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} />
+                    <textarea rows={4} className={styles.inputField} value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
                   </div>
                 </>
               )}
             </div>
 
+            {/* Footer */}
             <div className={styles.drawerFooter}>
               {isEditMode ? (
                 <>
@@ -311,13 +412,13 @@ export default function AdminDashboard() {
               ) : (
                 <>
                   {userRole === 'admin' && (
-                    <button onClick={() => handleDelete(drawerIssue.ticketId)} className={styles.btnOutline} style={{color:'#EF4444', borderColor:'#FECACA', marginRight:'auto'}}>
-                      ลบข้อมูล
+                    <button onClick={() => handleDelete(drawerIssue.ticketId)} className={styles.btnDanger}>
+                      ลบใบงาน
                     </button>
                   )}
-                  {userRole === 'admin' && (
-                    <button onClick={() => setIsEditMode(true)} className={styles.btnPrimary}>
-                      แก้ไขสถานะ
+                  {canEdit(drawerIssue) && (
+                    <button onClick={() => setIsEditMode(true)} className={styles.btnOutline} style={{ marginLeft: 'auto' }}>
+                      แก้ไขข้อมูล
                     </button>
                   )}
                 </>

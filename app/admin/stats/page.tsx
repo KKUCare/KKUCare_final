@@ -1,237 +1,347 @@
 // app/admin/stats/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './stats.module.css';
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
+  CategoryScale, LinearScale, BarElement,
+  Title, Tooltip, Legend, ArcElement,
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
+const CATEGORY_ICONS: Record<string, string> = {
+  'ทั่วไป':             '🔧',
+  'ไฟฟ้า/แสงสว่าง':    '💡',
+  'ประปา':              '🚿',
+  'ไอที/เครือข่าย':     '📡',
+  'ความสะอาด/ขยะ':     '🧹',
+};
+
+const STATUS_COLORS = {
+  pending:    { hex: '#f59e0b', label: 'รอดำเนินการ' },
+  inProgress: { hex: '#3b82f6', label: 'กำลังแก้ไข'  },
+  resolved:   { hex: '#10b981', label: 'เสร็จสิ้น'   },
+};
+
 export default function AdminStatsPage() {
   const router = useRouter();
-  const [data, setData] = useState<any[]>([]);
-  const [overview, setOverview] = useState<any>({});
-  const [loading, setLoading] = useState(true);
+  const [data,             setData]             = useState<any[]>([]);
+  const [overview,         setOverview]         = useState<any>({});
+  const [loading,          setLoading]          = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [visibleBars,      setVisibleBars]      = useState<Record<string, boolean>>({
+    pending: true, inProgress: true, resolved: true,
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
         const res = await fetch('/api/stats');
-        if (res.status === 403) {
-          alert('สำหรับ Admin เท่านั้น');
-          router.push('/');
-          return;
-        }
+        if (res.status === 403) { router.push('/'); return; }
         if (res.ok) {
           const json = await res.json();
           setData(json.stats);
           setOverview(json.overview);
         }
-      } catch (error) {
-        console.error('Fetch error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    })();
   }, [router]);
 
+  const pieRaw = useMemo(() => {
+    if (selectedCategory === 'All') return {
+      pending:    overview.totalPending    || 0,
+      inProgress: overview.totalInProgress || 0,
+      resolved:   overview.totalResolved   || 0,
+    };
+    const cat = data.find(d => d.category === selectedCategory);
+    return cat
+      ? { pending: cat.pending, inProgress: cat.inProgress, resolved: cat.resolved }
+      : { pending: 0, inProgress: 0, resolved: 0 };
+  }, [selectedCategory, data, overview]);
 
-  // --- ข้อมูลสำหรับ Bar Chart ---
-  const barChartData = {
-    labels: data.map(d => d.category),
-    datasets: [
-      {
-        label: 'รอดำเนินการ',
-        data: data.map(d => d.pending),
-        backgroundColor: '#f59e0b',
-        borderRadius: 4,
-      },
-      {
-        label: 'กำลังแก้ไข',
-        data: data.map(d => d.inProgress),
-        backgroundColor: '#3b82f6',
-        borderRadius: 4,
-      },
-      {
-        label: 'เสร็จสิ้น',
-        data: data.map(d => d.resolved),
-        backgroundColor: '#10b981',
-        borderRadius: 4,
-      }
-    ]
-  };
+  const pieTotal = pieRaw.pending + pieRaw.inProgress + pieRaw.resolved;
+
+  const barDatasets = useMemo(() => ([
+    { key: 'pending',    label: 'รอดำเนินการ', color: '#f59e0b', field: 'pending'    },
+    { key: 'inProgress', label: 'กำลังแก้ไข',  color: '#3b82f6', field: 'inProgress' },
+    { key: 'resolved',   label: 'เสร็จสิ้น',   color: '#10b981', field: 'resolved'   },
+  ])
+    .filter(d => visibleBars[d.key])
+    .map(d => ({
+      label: d.label,
+      data: data.map((row: any) => row[d.field]),
+      backgroundColor: d.color,
+      borderRadius: 4,
+      borderSkipped: false,
+      maxBarThickness: 24,
+    })), [data, visibleBars]);
+
+  const toggleBar = (key: string) =>
+    setVisibleBars(prev => ({ ...prev, [key]: !prev[key] }));
 
   const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top' as const, labels: { usePointStyle: true, boxWidth: 8 } },
-      title: { display: false }
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1c1410',
+        titleColor: 'rgba(255,255,255,0.55)',
+        bodyColor: 'white',
+        padding: 10, cornerRadius: 8,
+        titleFont: { size: 11 },
+        bodyFont: { size: 13, weight: 'bold' as const },
+      },
     },
     scales: {
-      x: { grid: { display: false } },
-      y: { grid: { color: '#f1f5f9' }, beginAtZero: true }
-    }
-  };
-
-  // --- ข้อมูลสำหรับ Doughnut Chart ---
-  let pieDataRaw = { pending: 0, inProgress: 0, resolved: 0 };
-  
-  if (selectedCategory === 'All') {
-    pieDataRaw = {
-      pending: overview.totalPending || 0,
-      inProgress: overview.totalInProgress || 0,
-      resolved: overview.totalResolved || 0
-    };
-  } else {
-    const catData = data.find(d => d.category === selectedCategory);
-    if (catData) {
-      pieDataRaw = {
-        pending: catData.pending,
-        inProgress: catData.inProgress,
-        resolved: catData.resolved
-      };
-    }
-  }
-
-  const doughnutChartData = {
-    labels: ['รอดำเนินการ', 'กำลังแก้ไข', 'เสร็จสิ้น'],
-    datasets: [
-      {
-        data: [pieDataRaw.pending, pieDataRaw.inProgress, pieDataRaw.resolved],
-        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
-        borderWidth: 0,
-        hoverOffset: 4
-      }
-    ]
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { color: '#8a7f76', font: { size: 11 } },
+      },
+      y: {
+        grid: { color: '#f0ece8' },
+        border: { display: false },
+        ticks: { color: '#8a7f76', font: { size: 10 }, precision: 0 },
+        beginAtZero: true,
+      },
+    },
   };
 
   const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '75%', 
+    responsive: true, maintainAspectRatio: false,
+    cutout: '80%',
     plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 20 } }
-    }
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1c1410',
+        titleColor: 'rgba(255,255,255,0.55)',
+        bodyColor: 'white',
+        padding: 10, cornerRadius: 8,
+      },
+    },
   };
+
+  const doughnutData = {
+    labels: ['รอดำเนินการ', 'กำลังแก้ไข', 'เสร็จสิ้น'],
+    datasets: [{
+      data: [pieRaw.pending, pieRaw.inProgress, pieRaw.resolved],
+      backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+      borderWidth: 0, hoverOffset: 4,
+    }],
+  };
+
+  if (loading) return (
+    <div className={styles.dashboard}>
+      <div className={styles.loadingWrap}>
+        <div className={styles.loadingDots}><span /><span /><span /></div>
+        <p className={styles.loadingText}>กำลังโหลดข้อมูล...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className={styles.dashboard}>
-      
-      {/* Top Navigation Bar แทน Sidebar เดิม */}
+
+      {/* ── TOPBAR — unified pattern ──────────────────────────── */}
       <nav className={styles.topbar}>
-        <div className={styles.brand}>
-          KKU Care
-        </div>
-        <div className={styles.navMenu}>
-          <Link href="/admin" className={`${styles.navItem} ${styles.active}`}>
-            <span className={styles.navIcon}>📋</span> จัดการปัญหา
+        <div className={styles.navContainer}>
+
+          <Link href="/" className={styles.brand}>
+            <div className={styles.brandMark}>K</div>
+            <span className={styles.brandText}>KKU<span>Care</span></span>
           </Link>
-          <Link href="/admin/stats" className={styles.navItem}>
-            <span className={styles.navIcon}>📈</span> สถิติภาพรวม
-          </Link>
-          <Link href="/" className={styles.navItem} style={{marginLeft: '16px', borderLeft: '1px solid #e2e8f0', paddingLeft: '24px', borderRadius: 0}}>
-            กลับหน้าหลัก
-          </Link>
+
+          <div className={styles.navMenu}>
+            <Link href="/admin"       className={styles.navLink}>จัดการปัญหา</Link>
+            <Link href="/admin/stats" className={`${styles.navLink} ${styles.navLinkActive}`}>สถิติภาพรวม</Link>
+          </div>
+
+          <div className={styles.navActions}>
+            <Link href="/" className={styles.btnNavGhost}>← กลับหน้าหลัก</Link>
+          </div>
+
         </div>
       </nav>
 
-      {/* Main Content Area */}
+      {/* ── MAIN ─────────────────────────────────────────────── */}
       <main className={styles.mainContent}>
-        
-        <div className={styles.header}>
-          <h1>ภาพรวมระบบรายงานปัญหา</h1>
-          <p>ข้อมูลสถิติการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด</p>
+
+        {/* Page header */}
+        <div className={styles.pageHeader}>
+          <div>
+            <p className={styles.pageEyebrow}>Admin Dashboard</p>
+            <h1 className={styles.pageTitle}>ภาพรวมระบบรายงานปัญหา</h1>
+            <p className={styles.pageSubtitle}>สถิติการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด</p>
+          </div>
+          <div className={styles.lastUpdated}>
+            <span className={styles.lastUpdatedDot} />
+            อัปเดตล่าสุดเมื่อกี้นี้
+          </div>
         </div>
 
-        {/* 4 Cards (Overview) */}
+        {/* ── STAT CARDS ─────────────────────────────────────── */}
         <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <div className={styles.statLabel}>
-              <div className={styles.statIcon} style={{ background: '#f8fafc', color: '#64748b'}}>📝</div>
-              งานทั้งหมด
+          {[
+            { mod: styles.statCardTotal,    iconMod: styles.iconTotal,    valueMod: styles.valueTotal,    icon: '📝', label: 'งานทั้งหมด',   value: overview.totalIssues    || 0, trend: null },
+            { mod: styles.statCardPending,  iconMod: styles.iconPending,  valueMod: styles.valuePending,  icon: '⏳', label: 'รอดำเนินการ', value: overview.totalPending   || 0, trend: null },
+            { mod: styles.statCardProgress, iconMod: styles.iconProgress, valueMod: styles.valueProgress, icon: '🔧', label: 'กำลังแก้ไข',  value: overview.totalInProgress|| 0, trend: null },
+            {
+              mod: styles.statCardDone, iconMod: styles.iconDone, valueMod: styles.valueDone,
+              icon: '✅', label: 'เสร็จสิ้น', value: overview.totalResolved || 0,
+              trend: overview.totalIssues
+                ? `${Math.round((overview.totalResolved / overview.totalIssues) * 100)}% ของทั้งหมด`
+                : null,
+            },
+          ].map((s, i) => (
+            <div key={i} className={`${styles.statCard} ${s.mod}`}>
+              <div className={styles.statTop}>
+                <span className={styles.statLabel}>{s.label}</span>
+                <div className={`${styles.statIconWrap} ${s.iconMod}`}>{s.icon}</div>
+              </div>
+              <div className={styles.statBottom}>
+                <div className={`${styles.statValue} ${s.valueMod}`}>{s.value.toLocaleString()}</div>
+                {s.trend && <div className={styles.statTrend}>{s.trend}</div>}
+              </div>
             </div>
-            <div className={styles.statValue}>{overview.totalIssues || 0}</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statLabel}>
-              <div className={styles.statIcon} style={{ background: '#fef3c7', color: '#d97706'}}>⏳</div>
-              รอดำเนินการ
-            </div>
-            <div className={styles.statValue}>{overview.totalPending || 0}</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statLabel}>
-              <div className={styles.statIcon} style={{ background: '#dbeafe', color: '#2563eb'}}>🔧</div>
-              กำลังแก้ไข
-            </div>
-            <div className={styles.statValue}>{overview.totalInProgress || 0}</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statLabel}>
-              <div className={styles.statIcon} style={{ background: '#d1fae5', color: '#059669'}}>✅</div>
-              เสร็จสิ้น
-            </div>
-            <div className={styles.statValue}>{overview.totalResolved || 0}</div>
-          </div>
+          ))}
         </div>
 
-        {/* Charts Container */}
+        {/* ── CHARTS ROW ─────────────────────────────────────── */}
         <div className={styles.chartsGrid}>
-          
+
           {/* Bar Chart */}
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h2 className={styles.chartTitle}>สถิติแยกตามหมวดหมู่</h2>
+              <div>
+                <p className={styles.chartEyebrow}>By Category</p>
+                <h2 className={styles.chartTitle}>สถิติแยกตามหมวดหมู่</h2>
+              </div>
+              <div className={styles.pillRow}>
+                {Object.entries(STATUS_COLORS).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => toggleBar(key)}
+                    className={`${styles.pill} ${visibleBars[key] ? styles.pillActive : ''}`}
+                    style={visibleBars[key] ? { background: cfg.hex, borderColor: cfg.hex } : {}}
+                  >
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ height: '300px' }}>
-              <Bar options={barOptions} data={barChartData} />
+            <div className={styles.barChartWrap}>
+              <Bar options={barOptions} data={{ labels: data.map(d => d.category), datasets: barDatasets }} />
             </div>
           </div>
 
-          {/* Doughnut Chart (Filterable) */}
+          {/* Doughnut Chart */}
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h2 className={styles.chartTitle}>สัดส่วนสถานะงาน</h2>
-              <select 
+              <div>
+                <p className={styles.chartEyebrow}>Status Ratio</p>
+                <h2 className={styles.chartTitle}>สัดส่วนสถานะงาน</h2>
+              </div>
+              <select
                 className={styles.selectInput}
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={e => setSelectedCategory(e.target.value)}
               >
-                <option value="All">รวมทุกแผนก</option>
+                <option value="All">ทุกหมวดหมู่</option>
                 {data.map(d => (
                   <option key={d.category} value={d.category}>{d.category}</option>
                 ))}
               </select>
             </div>
-            
-            <div style={{ height: '280px', display: 'flex', justifyContent: 'center', position: 'relative' }}>
-              <Doughnut options={doughnutOptions} data={doughnutChartData} />
-              
-              {/* Text in the middle of Doughnut */}
-              <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>รวมทั้งหมด</span><br/>
-                <strong style={{ fontSize: '1.5rem', color: '#1e293b' }}>
-                  {pieDataRaw.pending + pieDataRaw.inProgress + pieDataRaw.resolved}
-                </strong>
+
+            <div className={styles.doughnutWrap}>
+              <Doughnut options={doughnutOptions} data={doughnutData} style={{ maxHeight: 180 }} />
+              <div className={styles.doughnutCenter}>
+                <span className={styles.doughnutCenterLabel}>รวม</span>
+                <span className={styles.doughnutCenterValue}>{pieTotal}</span>
               </div>
+            </div>
+
+            <div className={styles.statusLegend}>
+              {[
+                { key: 'pending',    count: pieRaw.pending,    color: '#f59e0b', label: 'รอดำเนินการ' },
+                { key: 'inProgress', count: pieRaw.inProgress, color: '#3b82f6', label: 'กำลังแก้ไข'  },
+                { key: 'resolved',   count: pieRaw.resolved,   color: '#10b981', label: 'เสร็จสิ้น'   },
+              ].map(s => (
+                <div key={s.key} className={styles.legendRow}>
+                  <div className={styles.legendLeft}>
+                    <span className={styles.legendDot} style={{ background: s.color }} />
+                    {s.label}
+                  </div>
+                  <div className={styles.legendBar}>
+                    <div
+                      className={styles.legendBarFill}
+                      style={{
+                        width: pieTotal ? `${(s.count / pieTotal) * 100}%` : '0%',
+                        background: s.color,
+                      }}
+                    />
+                  </div>
+                  <span className={styles.legendCount}>{s.count}</span>
+                </div>
+              ))}
             </div>
           </div>
 
+        </div>
+
+        {/* ── CATEGORY TABLE ─────────────────────────────────── */}
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>ตารางรายละเอียดตามหมวดหมู่</h2>
+            <p className={styles.tableSub}>แสดงจำนวนงานแยกตามสถานะในแต่ละหมวดหมู่</p>
+          </div>
+
+          <table className={styles.table}>
+            <thead className={styles.thead}>
+              <tr>
+                <th>หมวดหมู่</th>
+                <th>รอดำเนินการ</th>
+                <th>กำลังแก้ไข</th>
+                <th>เสร็จสิ้น</th>
+                <th>รวม</th>
+                <th>% สำเร็จ</th>
+              </tr>
+            </thead>
+            <tbody className={styles.tbody}>
+              {data.map(row => {
+                const total = row.pending + row.inProgress + row.resolved;
+                const pct   = total ? Math.round((row.resolved / total) * 100) : 0;
+                return (
+                  <tr key={row.category}>
+                    <td>
+                      <div className={styles.catName}>
+                        <span className={styles.catEmoji}>{CATEGORY_ICONS[row.category] ?? '📌'}</span>
+                        {row.category}
+                      </div>
+                    </td>
+                    <td className={styles.tdPending}>{row.pending}</td>
+                    <td className={styles.tdProgress}>{row.inProgress}</td>
+                    <td className={styles.tdDone}>{row.resolved}</td>
+                    <td className={styles.tdTotal}>{total}</td>
+                    <td>
+                      <div className={styles.tdBar}>
+                        <div className={styles.miniBar}>
+                          <div className={styles.miniBarFill} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={styles.pctLabel}>{pct}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
       </main>

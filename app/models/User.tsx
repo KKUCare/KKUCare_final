@@ -15,7 +15,6 @@ const UserSchema = new mongoose.Schema({
       'staff_water',        // งานประปา
       'staff_it',           // งาน IT
       'staff_cleaning',     // งานความสะอาด/ภูมิทัศน์
-      'staff_security',     // งานความปลอดภัย
       'staff_general'       // งานทั่วไป
     ],
     default: 'user' // สมัครใหม่เป็น user เสมอ

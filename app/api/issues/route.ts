@@ -52,9 +52,10 @@ export async function POST(request: Request) {
       status: 'pending'
     });
 
-    // Trigger N8N
-    if (process.env.N8N_WEBHOOK_URL) {
-      fetch(process.env.N8N_WEBHOOK_URL, {
+  // Trigger N8N
+    const n8nUrl = process.env.N8N_WEBHOOK_URL; 
+    if (n8nUrl) {
+      fetch(n8nUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -116,11 +117,11 @@ export async function GET(request: Request) {
           break;
           
         case 'staff_cleaning':
-          filter = { category: 'ความสะอาด' }; // ตรงกับ value ในหน้า Frontend
+          filter = { category: 'ความสะอาด/ขยะ' }; // ตรงกับ value ในหน้า Frontend
           break;
 
         case 'staff_security':
-          filter = { category: 'ความปลอดภัย' };
+          filter = { category: 'ความปลอดภัย/จราจร' }; // ตรงกับ value ในหน้า Frontend
           break;
 
         case 'staff_general':
