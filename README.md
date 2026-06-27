@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+📌 1. รายละเอียดโปรแกรม (Program Details)
+ชื่อโปรเจกต์: KKU Care (Smart Campus Reporting Platform)
+วัตถุประสงค์: แพลตฟอร์มสำหรับแจ้งปัญหาและซ่อมบำรุงสาธารณูปโภคภายในมหาวิทยาลัยขอนแก่น เพื่อให้นักศึกษาและบุคลากรสามารถแจ้งเรื่อง ติดตามสถานะ และให้เจ้าหน้าที่ส่วนกลางบริหารจัดการงานได้อย่างมีประสิทธิภาพผ่านระบบออนไลน์
 
-## Getting Started
+เทคโนโลยีที่ใช้ (Tech Stack):
 
-First, run the development server:
+Frontend (ส่วนหน้าบ้าน): พัฒนาด้วย Next.js 14 (App Router) ร่วมกับ React และ TypeScript เน้นการแสดงผลที่รวดเร็ว (SSR/CSR) และออกแบบ UI ให้รองรับทุกหน้าจอ (Responsive) ด้วย CSS Modules
 
-```bash
+Backend (ส่วนหลังบ้าน): ใช้ Next.js API Routes ทำงานแบบ Serverless สำหรับจัดการ RESTful API
+
+Database (ฐานข้อมูล): ใช้ MongoDB (NoSQL) ร่วมกับ Mongoose ODM เพื่อความยืดหยุ่นในการเก็บข้อมูลตั๋วแจ้งซ่อมและข้อมูลผู้ใช้งาน
+
+Security (ความปลอดภัย): ระบบยืนยันตัวตน (Authentication) ใช้ JWT (JSON Web Tokens) ควบคู่กับการเก็บ Cookie แบบ HTTP-Only เพื่อป้องกันการถูกแฮกข้อมูล (XSS Attacks)
+
+Data Visualization: ใช้ Chart.js และ react-chartjs-2 สำหรับสร้างกราฟสถิติในหน้า Admin Dashboard
+
+ฟีเจอร์หลัก (Key Features):
+
+User (ผู้ใช้ทั่วไป): สมัครสมาชิก/เข้าสู่ระบบ, สร้างฟอร์มแจ้งปัญหา (อัปโหลดรูปภาพได้), และดูประวัติติดตามสถานะงานของตัวเอง
+
+Admin (ผู้ดูแลระบบ): แดชบอร์ดสรุปสถิติ (กราฟวงกลม/กราฟแท่ง), จัดการสถานะตั๋วงาน (รอรับเรื่อง -> กำลังดำเนินการ -> เสร็จสิ้น), ค้นหาและกรองหมวดหมู่งาน, และสิทธิ์ในการแก้ไขหรือลบตั๋วงาน
+
+⚙️ 2. สิ่งที่ต้องมีก่อนติดตั้ง (Prerequisites)
+ก่อนเริ่มติดตั้งโปรเจกต์ เครื่องคอมพิวเตอร์ของคุณต้องมีโปรแกรมเหล่านี้ติดตั้งไว้ก่อน:
+
+Node.js (แนะนำเวอร์ชัน 18.x หรือ 20.x ขึ้นไป) - ดาวน์โหลดได้ที่ nodejs.org
+
+Git สำหรับจัดการเวอร์ชันคอนโทรล - ดาวน์โหลดได้ที่ git-scm.com
+
+MongoDB (ใช้แบบ Cloud ผ่าน MongoDB Atlas หรือติดตั้ง Local ในเครื่องก็ได้)
+
+VS Code หรือ Code Editor อื่นๆ ที่คุณถนัด
+
+🚀 3. วิธีการติดตั้งและรันโปรแกรม (Installation Guide)
+ขั้นตอนที่ 1: คัดลอกโปรเจกต์มาลงที่เครื่อง (Clone Repository)
+เปิด Terminal (หรือ Command Prompt) และพิมพ์คำสั่งต่อไปนี้เพื่อดึงโค้ดจาก Git (หากคุณมี Git Repository แล้ว):
+
+git clone https://github.com/your-username/kku-care.git
+cd kku-care
+
+ขั้นตอนที่ 2: ติดตั้ง Dependencies (แพ็กเกจที่จำเป็น)
+เมื่อเข้าไปในโฟลเดอร์โปรเจกต์แล้ว ให้รันคำสั่งติดตั้งแพ็กเกจทั้งหมดที่กำหนดไว้ใน package.json:
+
+Bash
+npm install
+(รอจนกว่าระบบจะดาวน์โหลดไฟล์เสร็จสิ้น)
+
+ขั้นตอนที่ 3: ตั้งค่าตัวแปรสภาพแวดล้อม (Environment Variables)
+สร้างไฟล์ใหม่ในโฟลเดอร์หลัก (Root folder) ตั้งชื่อว่า .env.local จากนั้นกำหนดค่า 2 ตัวแปรนี้ลงไป:
+
+Code snippet
+# URL สำหรับเชื่อมต่อฐานข้อมูล MongoDB ของคุณ
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/kku_care?retryWrites=true&w=majority
+
+# รหัสลับสำหรับเข้ารหัส JWT (ตั้งเป็นข้อความยาวๆ อะไรก็ได้ที่เดายาก)
+JWT_SECRET=super_secret_key_kku_care_2024_secure!
+(หมายเหตุ: อย่าลืมเปลี่ยน <username> และ <password> เป็นของฐานข้อมูลคุณจริงๆ)
+
+ขั้นตอนที่ 4: รันโปรแกรมในโหมดนักพัฒนา (Run Development Server)
+เมื่อตั้งค่าทุกอย่างเสร็จแล้ว รันคำสั่งนี้เพื่อเปิดเซิร์ฟเวอร์จำลอง:
+
+Bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+ขั้นตอนที่ 5: เปิดใช้งานเว็บไซต์
+เปิดเว็บเบราว์เซอร์ (Google Chrome, Safari, ฯลฯ) แล้วพิมพ์ URL ต่อไปนี้:
+👉 http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+💡 4. คำแนะนำเพิ่มเติมสำหรับการทดสอบระบบ
+การสร้างบัญชี Admin ชั่วคราว: เนื่องจากระบบเพิ่งรันครั้งแรก จะยังไม่มีแอดมิน ให้คุณเข้าไปกด "สมัครสมาชิก" ตามปกติก่อน จากนั้นเข้าไปที่ฐานข้อมูล (MongoDB Atlas หรือ MongoDB Compass) ค้นหา Collection ที่ชื่อว่า users แล้วเปลี่ยนค่า role ของบัญชีคุณจาก "user" ให้เป็น "admin"
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+การแจ้งปัญหา (รูปภาพ): หากแจ้งปัญหาแล้วมีการแนบรูปภาพ ไฟล์ภาพจะถูกฝังและส่งข้อมูลแนบไปกับระบบ (ด้วย FormData)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+การหยุดเซิร์ฟเวอร์: เมื่อทดสอบเสร็จแล้ว สามารถกด Ctrl + C (หรือ Cmd + C ใน Mac) ในหน้า Terminal เพื่อปิดการทำงานของเซิร์ฟเวอร์
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ข้อมูลชุดนี้สามารถก็อปปี้ไปส่งให้ทีมงาน อาจารย์ หรือ HR อ่านได้เลยครับ หากต้องการให้ปรับแต่งคำพูดส่วนไหนเพิ่มเติม แจ้งผมได้ตลอดเลยครับ!
