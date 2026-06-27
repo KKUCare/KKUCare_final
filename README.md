@@ -1,78 +1,85 @@
-📌 1. รายละเอียดโปรแกรม (Program Details)
-ชื่อโปรเจกต์: KKU Care (Smart Campus Reporting Platform)
-วัตถุประสงค์: แพลตฟอร์มสำหรับแจ้งปัญหาและซ่อมบำรุงสาธารณูปโภคภายในมหาวิทยาลัยขอนแก่น เพื่อให้นักศึกษาและบุคลากรสามารถแจ้งเรื่อง ติดตามสถานะ และให้เจ้าหน้าที่ส่วนกลางบริหารจัดการงานได้อย่างมีประสิทธิภาพผ่านระบบออนไลน์
+# 🛠️ Smart Issue Reporting System (ระบบแจ้งซ่อมและจัดการปัญหาอัจฉริยะ)
 
-เทคโนโลยีที่ใช้ (Tech Stack):
+ระบบแจ้งซ่อมและจัดการปัญหาภายในองค์กร พัฒนาด้วย **Next.js** ผสานการทำงานร่วมกับ **n8n** และ **AI (Google Gemini)** เพื่อวิเคราะห์ปัญหาจากรูปภาพและข้อความโดยอัตโนมัติ พร้อมส่งการแจ้งเตือนแบบ Real-time ผ่าน **LINE** และมีระบบจัดการหลังบ้านสำหรับเจ้าหน้าที่ (Staff)
 
-Frontend (ส่วนหน้าบ้าน): พัฒนาด้วย Next.js 14 (App Router) ร่วมกับ React และ TypeScript เน้นการแสดงผลที่รวดเร็ว (SSR/CSR) และออกแบบ UI ให้รองรับทุกหน้าจอ (Responsive) ด้วย CSS Modules
+---
 
-Backend (ส่วนหลังบ้าน): ใช้ Next.js API Routes ทำงานแบบ Serverless สำหรับจัดการ RESTful API
+## ✨ ฟีเจอร์หลัก (Key Features)
 
-Database (ฐานข้อมูล): ใช้ MongoDB (NoSQL) ร่วมกับ Mongoose ODM เพื่อความยืดหยุ่นในการเก็บข้อมูลตั๋วแจ้งซ่อมและข้อมูลผู้ใช้งาน
+* **📝 User Report Form:** ผู้ใช้งานสามารถแจ้งปัญหาได้ง่ายๆ ผ่านฟอร์ม (ระบุหัวข้อ, รายละเอียด, สถานที่ และอัปโหลดรูปภาพ)
+* **🤖 AI Auto-Categorization:** ใช้ AI Agent (Gemini) วิเคราะห์ปัญหาจาก "รูปภาพ" และ "ข้อความ" เพื่อจัดหมวดหมู่งานอัตโนมัติ (เช่น ไฟฟ้า, ประปา, ไอที, ความปลอดภัย, ความสะอาด, ทั่วไป)
+* **📱 LINE Notifications:** เมื่อมีการแจ้งปัญหาใหม่ ระบบจะส่งการแจ้งเตือนเข้ากลุ่ม LINE ทันทีผ่าน n8n Workflow
+* **👨‍🔧 Staff Management:** ระบบหลังบ้านสำหรับเจ้าหน้าที่ในการกดรับงาน, อัปเดตสถานะ (รอดำเนินการ, กำลังทำ, เสร็จสิ้น) และเขียนรายงานผล (Staff Report) เมื่อปิดงาน
+* **🗄️ Database Integration:** บันทึกข้อมูลตั๋วแจ้งซ่อม (Ticket) อย่างเป็นระบบด้วย MongoDB
 
-Security (ความปลอดภัย): ระบบยืนยันตัวตน (Authentication) ใช้ JWT (JSON Web Tokens) ควบคู่กับการเก็บ Cookie แบบ HTTP-Only เพื่อป้องกันการถูกแฮกข้อมูล (XSS Attacks)
+---
 
-Data Visualization: ใช้ Chart.js และ react-chartjs-2 สำหรับสร้างกราฟสถิติในหน้า Admin Dashboard
+## 💻 Tech Stack (เครื่องมือที่ใช้พัฒนา)
 
-ฟีเจอร์หลัก (Key Features):
+* **Frontend & Backend API:** [Next.js](https://nextjs.org/)
+* **Database:** [MongoDB](https://www.mongodb.com/) (เชื่อมต่อผ่าน Mongoose/Prisma)
+* **Automation & Integration:** [n8n](https://n8n.io/) (Webhook & AI Agent)
+* **AI Model:** Google Gemini
+* **Notification:** LINE Messaging API (ผ่าน n8n)
 
-User (ผู้ใช้ทั่วไป): สมัครสมาชิก/เข้าสู่ระบบ, สร้างฟอร์มแจ้งปัญหา (อัปโหลดรูปภาพได้), และดูประวัติติดตามสถานะงานของตัวเอง
+---
 
-Admin (ผู้ดูแลระบบ): แดชบอร์ดสรุปสถิติ (กราฟวงกลม/กราฟแท่ง), จัดการสถานะตั๋วงาน (รอรับเรื่อง -> กำลังดำเนินการ -> เสร็จสิ้น), ค้นหาและกรองหมวดหมู่งาน, และสิทธิ์ในการแก้ไขหรือลบตั๋วงาน
+## 🚀 การติดตั้งและใช้งาน (Getting Started)
 
-⚙️ 2. สิ่งที่ต้องมีก่อนติดตั้ง (Prerequisites)
-ก่อนเริ่มติดตั้งโปรเจกต์ เครื่องคอมพิวเตอร์ของคุณต้องมีโปรแกรมเหล่านี้ติดตั้งไว้ก่อน:
+### 1. Clone โปรเจกต์
+```bash
+git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+cd your-repo-name
+```
 
-Node.js (แนะนำเวอร์ชัน 18.x หรือ 20.x ขึ้นไป) - ดาวน์โหลดได้ที่ nodejs.org
-
-Git สำหรับจัดการเวอร์ชันคอนโทรล - ดาวน์โหลดได้ที่ git-scm.com
-
-MongoDB (ใช้แบบ Cloud ผ่าน MongoDB Atlas หรือติดตั้ง Local ในเครื่องก็ได้)
-
-VS Code หรือ Code Editor อื่นๆ ที่คุณถนัด
-
-🚀 3. วิธีการติดตั้งและรันโปรแกรม (Installation Guide)
-ขั้นตอนที่ 1: คัดลอกโปรเจกต์มาลงที่เครื่อง (Clone Repository)
-เปิด Terminal (หรือ Command Prompt) และพิมพ์คำสั่งต่อไปนี้เพื่อดึงโค้ดจาก Git (หากคุณมี Git Repository แล้ว):
-
-git clone https://github.com/your-username/kku-care.git
-cd kku-care
-
-ขั้นตอนที่ 2: ติดตั้ง Dependencies (แพ็กเกจที่จำเป็น)
-เมื่อเข้าไปในโฟลเดอร์โปรเจกต์แล้ว ให้รันคำสั่งติดตั้งแพ็กเกจทั้งหมดที่กำหนดไว้ใน package.json:
-
-Bash npm install
-(รอจนกว่าระบบจะดาวน์โหลดไฟล์เสร็จสิ้น)
-
-ขั้นตอนที่ 3: ตั้งค่าตัวแปรสภาพแวดล้อม (Environment Variables)
-สร้างไฟล์ใหม่ในโฟลเดอร์หลัก (Root folder) ตั้งชื่อว่า .env.local จากนั้นกำหนดค่า 2 ตัวแปรนี้ลงไป:
+2. ติดตั้ง Dependencies
+Bash
+npm install
+3. ตั้งค่า Environment Variables (.env)
+สร้างไฟล์ชื่อ .env ไว้ที่นอกสุดของโปรเจกต์ (Root Directory) ห้ามใส่ไว้ในโฟลเดอร์ app/ หรือ src/ เด็ดขาด และใส่ค่าดังนี้:
 
 Code snippet
-# URL สำหรับเชื่อมต่อฐานข้อมูล MongoDB ของคุณ
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/kku_care?retryWrites=true&w=majority
+# การเชื่อมต่อฐานข้อมูล MongoDB
+MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>"
 
-# รหัสลับสำหรับเข้ารหัส JWT (ตั้งเป็นข้อความยาวๆ อะไรก็ได้ที่เดายาก)
-JWT_SECRET=super_secret_key_kku_care_2024_secure!
-(หมายเหตุ: อย่าลืมเปลี่ยน <username> และ <password> เป็นของฐานข้อมูลคุณจริงๆ)
-
-ขั้นตอนที่ 4: รันโปรแกรมในโหมดนักพัฒนา (Run Development Server)
-เมื่อตั้งค่าทุกอย่างเสร็จแล้ว รันคำสั่งนี้เพื่อเปิดเซิร์ฟเวอร์จำลอง:
-
+# Webhook URL สำหรับส่งข้อมูลไป n8n (ใช้ Production URL)
+N8N_WEBHOOK_URL="https://[your-n8n-domain]/webhook/Replay"
+4. รันเซิร์ฟเวอร์จำลอง (Development)
 Bash
 npm run dev
+เปิดเบราว์เซอร์ไปที่ http://localhost:3000 เพื่อดูผลลัพธ์
 
-ขั้นตอนที่ 5: เปิดใช้งานเว็บไซต์
-เปิดเว็บเบราว์เซอร์ (Google Chrome, Safari, ฯลฯ) แล้วพิมพ์ URL ต่อไปนี้:
-👉 http://localhost:3000
+🧠 การทำงานของ AI Agent (หมวดหมู่ปัญหา)
+AI จะวิเคราะห์ปัญหาโดยให้น้ำหนักกับ "รูปภาพ" เป็นหลัก หากข้อความขัดแย้งกับภาพ AI จะยึดรูปภาพในการตัดสินใจจัดหมวดหมู่ดังนี้:
 
-💡 4. คำแนะนำเพิ่มเติมสำหรับการทดสอบระบบ
-การสร้างบัญชี Admin ชั่วคราว: เนื่องจากระบบเพิ่งรันครั้งแรก จะยังไม่มีแอดมิน ให้คุณเข้าไปกด "สมัครสมาชิก" ตามปกติก่อน จากนั้นเข้าไปที่ฐานข้อมูล (MongoDB Atlas หรือ MongoDB Compass) ค้นหา Collection ที่ชื่อว่า users แล้วเปลี่ยนค่า role ของบัญชีคุณจาก "user" ให้เป็น "admin"
+⚡ Electrical: ปัญหาไฟฟ้า, แอร์, แสงสว่าง
 
-การแจ้งปัญหา (รูปภาพ): หากแจ้งปัญหาแล้วมีการแนบรูปภาพ ไฟล์ภาพจะถูกฝังและส่งข้อมูลแนบไปกับระบบ (ด้วย FormData)
+💧 Plumbing: ปัญหาประปา, น้ำรั่ว, ท่อตัน
 
-การหยุดเซิร์ฟเวอร์: เมื่อทดสอบเสร็จแล้ว สามารถกด Ctrl + C (หรือ Cmd + C ใน Mac) ในหน้า Terminal เพื่อปิดการทำงานของเซิร์ฟเวอร์
+💻 IT: ปัญหาอินเทอร์เน็ต, คอมพิวเตอร์, ระบบเครือข่าย
 
-ข้อมูลชุดนี้สามารถก็อปปี้ไปส่งให้ทีมงาน อาจารย์ หรือ HR อ่านได้เลยครับ หากต้องการให้ปรับแต่งคำพูดส่วนไหนเพิ่มเติม แจ้งผมได้ตลอดเลยครับ!
+🚨 Security: ความปลอดภัย, จราจร, อุบัติเหตุ, สิ่งผิดปกติ
+
+🧹 Cleaning: ความสะอาด, ขยะ, ภูมิทัศน์
+
+🔧 General: งานทั่วไปที่ไม่เข้าข่ายหมวดอื่นๆ
+
+📌 หมายเหตุ (Note)
+ต้องตั้งค่า Workflow ใน n8n ให้มีสถานะเป็น Active (Published) และใช้ Production Webhook URL เท่านั้น เพื่อให้ระบบทำงานอยู่เบื้องหลังได้ตลอดเวลา
+
+หากมีการแก้ไขไฟล์ .env อย่าลืมลบโฟลเดอร์ .next และรัน npm run dev ใหม่เสมอ
 
 <img width="1909" height="958" alt="Screenshot 2026-03-18 032638" src="https://github.com/user-attachments/assets/b519275e-ee40-4d31-86f4-ae28424379e6" />
+<img width="1911" height="955" alt="Screenshot 2026-03-18 032720" src="https://github.com/user-attachments/assets/cfad2ae1-ec56-4e06-b03b-cf801d068b54" />
+<img width="1898" height="959" alt="Screenshot 2026-03-18 032752" src="https://github.com/user-attachments/assets/9e4a08dc-e7a1-425b-86e9-63c30b948f30" />
+<img width="1888" height="955" alt="Screenshot 2026-03-18 032830" src="https://github.com/user-attachments/assets/ab8d85d1-ba90-4b4c-b293-1d0dae4c5f0d" />
+<img width="1905" height="959" alt="Screenshot 2026-03-18 032840" src="https://github.com/user-attachments/assets/19630ebf-ed08-4507-8d84-3c21b408afa4" />
+<img width="1892" height="959" alt="Screenshot 2026-03-18 032849" src="https://github.com/user-attachments/assets/ebf831e9-2aa5-43a5-a9a0-d37125b4c275" />
+<img width="1010" height="752" alt="image" src="https://github.com/user-attachments/assets/9362caf7-fb2f-41b7-957b-5fd342583657" />
+
+
+
+
+
+
 
