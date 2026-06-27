@@ -60,6 +60,7 @@ JWT_SECRET=super_secret_key_kku_care_2024_secure!
 
 Bash
 npm run dev
+
 ขั้นตอนที่ 5: เปิดใช้งานเว็บไซต์
 เปิดเว็บเบราว์เซอร์ (Google Chrome, Safari, ฯลฯ) แล้วพิมพ์ URL ต่อไปนี้:
 👉 http://localhost:3000
